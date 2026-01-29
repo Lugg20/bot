@@ -1,4 +1,3 @@
-
 mensagens_enviadas = {}
 mensagens_usuario = {}
 import discord
@@ -27,6 +26,9 @@ intents.message_content = True
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 key_index = 0  # controle do revezamento
+
+intents = discord.Intents.all()
+bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 # ================= PERSONALIDADE FIXA =================
 SYSTEM_PROMPT = (
@@ -233,9 +235,6 @@ async def rank(ctx):
 
     await ctx.send(texto)
 
-    # ===== PROCESSAR COMANDOS =====
-    await bot.process_commands(message)
-
 @bot.command()
 async def ping(ctx, membro: discord.Member = None):
 
@@ -378,5 +377,4 @@ async def oi(ctx):
 
 # ================= START =================
 TOKEN = os.getenv("DISCORD_TOKEN")
-bot = commands.Bot(command_prefix="?", intents=discord.Intents.all())
 bot.run(TOKEN)
