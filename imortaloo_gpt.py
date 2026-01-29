@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 # ================= CONFIG =================
 
-GEMINI_KEYS = []
+GEMINI_KEYS = os.getenv("GEMINI_KEYS", "").split(",")
 
 PREFIX = "?"
 ARQ_CANAIS = "canais.json"
