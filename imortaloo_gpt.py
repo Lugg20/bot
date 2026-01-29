@@ -377,4 +377,6 @@ async def oi(ctx):
     await ctx.send("<a:b_MikoYaeFesta_RR:1461151107958046802>")
 
 # ================= START =================
-bot.run(os.getenv("DISCORD_TOKEN"))
+TOKEN = os.getenv("DISCORD_TOKEN")
+bot = commands.Bot(command_prefix="?", intents=discord.Intents.all())
+bot.run(TOKEN)
