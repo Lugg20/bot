@@ -429,15 +429,18 @@ else:
     economia = {}
 
 def get_saldo(uid):
-    uid = str(uid)
-    if uid not in economia:
-        economia[uid] = 0
-    return economia[uid]
+    cursor.execute("SELECT saldo FROM usuarios WHERE id = %s", (uid,))
+    row = cursor.fetchone()
+    if row:
+        return row[0]
+    else:
+        cursor.execute("INSERT INTO usuarios (id, saldo, mensagens) VALUES (%s, %s, %s)", (uid, 0, 0))
+        conn.commit()
+        return 0
 
 def set_saldo(uid, valor):
-    economia[str(uid)] = valor
-    with open(ECONOMIA_ARQ, "w") as f:
-        json.dump(economia, f, indent=4)
+    cursor.execute("UPDATE usuarios SET saldo = %s WHERE id = %s", (valor, uid))
+    conn.commit()
 
 daily_usuarios = {}
 
