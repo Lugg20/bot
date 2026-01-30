@@ -8,6 +8,22 @@ import os
 import json
 from datetime import datetime, timedelta
 # ================= CONFIG =================
+import psycopg2
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS usuarios (
+    id TEXT PRIMARY KEY,
+    saldo INTEGER DEFAULT 0,
+    mensagens INTEGER DEFAULT 0,
+    ultimo_daily DATE
+)
+""")
+conn.commit()
 
 GEMINI_KEYS = os.getenv("GEMINI_KEYS", "").split(",")
 
@@ -152,17 +168,24 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # Contador geral
-    dados["total"] += 1
-
     uid = str(message.author.id)
-    if uid not in dados["usuarios"]:
-        dados["usuarios"][uid] = 0
-    dados["usuarios"][uid] += 1
 
-    # Salva no JSON
-    with open(ARQUIVO, "w") as f:
-        json.dump(dados, f, indent=4)
+    cursor.execute("SELECT mensagens FROM usuarios WHERE id = %s", (uid,))
+    row = cursor.fetchone()
+
+    if not row:
+        cursor.execute(
+            "INSERT INTO usuarios (id, mensagens) VALUES (%s, %s)",
+            (uid, 1)
+        )
+    else:
+        cursor.execute(
+            "UPDATE usuarios SET mensagens = mensagens + 1 WHERE id = %s",
+            (uid,)
+        )
+
+    conn.commit()
+    await bot.process_commands(message)
 
     # Quando escrever o ID do bot manualmente
     if message.content.strip() == "<@1396874802605854800>":
@@ -236,31 +259,25 @@ async def mensagens(ctx, membro: discord.Member = None):
 
 @bot.command()
 async def rank(ctx):
+    cursor.execute(
+        "SELECT id, mensagens FROM usuarios ORDER BY mensagens DESC LIMIT 10"
+    )
+    rows = cursor.fetchall()
 
-    if ctx.channel.id not in CANAL_PERMITIDO:
-        return
+    embed = discord.Embed(
+        title="🏆 Ranking de mensagens",
+        color=discord.Color.gold()
+    )
 
-    if not dados["usuarios"]:
-        await ctx.send("Ainda não há dados de mensagens")
-        return
+    for i, (uid, mensagens) in enumerate(rows, start=1):
+        user = await bot.fetch_user(int(uid))
+        embed.add_field(
+            name=f"{i}º — {user.name}",
+            value=f"💬 {mensagens} mensagens",
+            inline=False
+        )
 
-    ranking = sorted(dados["usuarios"].items(), key=lambda x: x[1], reverse=True)
-    top = ranking[:10]
-
-    medalhas = ["🥇", "🥈", "🥉"]
-    texto = "🏆 Ranking das mensagens:\n"
-
-    for i, (uid, qtd) in enumerate(top):
-        try:
-            membro = await ctx.guild.fetch_member(int(uid))
-            nome = membro.display_name
-        except:
-            nome = "Usuário desconhecido"
-
-        emoji = medalhas[i] if i < 3 else f"{i+1}º"
-        texto += f"{emoji} {nome} — {qtd} mensagens\n"
-
-    await ctx.send(texto)
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def ping(ctx, membro: discord.Member = None):
@@ -424,34 +441,45 @@ def set_saldo(uid, valor):
 
 daily_usuarios = {}
 
+from datetime import date
+
 @bot.command()
 async def daily(ctx):
     uid = str(ctx.author.id)
-    agora = datetime.now()
+    hoje = date.today()
 
-    if uid in daily_usuarios:
-        ultima = daily_usuarios[uid]
-        diferenca = agora - ultima
-        if diferenca.total_seconds() < 86400:
-            restante = 86400 - diferenca.total_seconds()
-            horas = int(restante // 3600)
-            minutos = int((restante % 3600) // 60)
-            await ctx.send(f"⏳ Ainda não, manin. Volta em **{horas}h {minutos}min**.")
-            return
+    cursor.execute("SELECT ultimo_daily, saldo FROM usuarios WHERE id = %s", (uid,))
+    row = cursor.fetchone()
 
-    ganho = 100000
-    saldo = get_saldo(uid)
-    set_saldo(uid, saldo + ganho)
-    daily_usuarios[uid] = agora
+    if not row:
+        cursor.execute(
+            "INSERT INTO usuarios (id, saldo, ultimo_daily) VALUES (%s, %s, %s)",
+            (uid, 100000, hoje)
+        )
+        conn.commit()
+        ganho = 100000
+    else:
+        ultimo, saldo = row
+        if ultimo == hoje:
+            embed = discord.Embed(
+                title="⏳ Daily já coletado",
+                description="Você já pegou seu daily hoje",
+                color=discord.Color.red()
+            )
+            return await ctx.send(embed=embed)
+
+        ganho = 100000
+        cursor.execute(
+            "UPDATE usuarios SET saldo = saldo + %s, ultimo_daily = %s WHERE id = %s",
+            (ganho, hoje, uid)
+        )
+        conn.commit()
 
     embed = discord.Embed(
-        title="🎁 Daily recebido!",
-        description=f"{ctx.author.mention}, você ganhou **{ganho}** moedas!\n\nNovo saldo: **{get_saldo(uid)}** 💸",
+        title="🎁 Daily coletado!",
+        description=f"Você ganhou **{ganho:,} moedas** 🪙🔥",
         color=discord.Color.green()
     )
-
-    embed.set_footer(text="Volte amanhã pra mais🔥")
-
     await ctx.send(embed=embed)
 
 mines_jogos = {}
@@ -702,43 +730,69 @@ async def stand(ctx):
 @bot.command()
 async def saldo(ctx):
     uid = str(ctx.author.id)
-    saldo = get_saldo(uid)
+
+    cursor.execute("SELECT saldo FROM usuarios WHERE id = %s", (uid,))
+    row = cursor.fetchone()
+
+    if not row:
+        cursor.execute("INSERT INTO usuarios (id, saldo) VALUES (%s, %s)", (uid, 0))
+        conn.commit()
+        saldo = 0
+    else:
+        saldo = row[0]
 
     embed = discord.Embed(
         title="💰 Seu saldo",
-        description=f"{ctx.author.mention}, você tem **{saldo}** moedas!",
+        description=f"Você tem **{saldo:,} moedas** 🪙",
         color=discord.Color.gold()
     )
-
-    embed.set_footer(text="Sistema econômico imortal 🔥")
-
     await ctx.send(embed=embed)
 
 @bot.command()
 @commands.has_permissions(manage_messages=True)
-async def give(ctx, membro: discord.Member, quantidade: int):
+async def give(ctx, member: discord.Member, quantidade: int):
     if quantidade <= 0:
-        embed = discord.Embed(
-            title="❌ Erro",
-            description="Quantidade inválida, manin.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return
+        return await ctx.send("❌ Quantidade inválida.")
 
-    saldo_atual = get_saldo(membro.id)
-    set_saldo(membro.id, saldo_atual + quantidade)
+    uid = str(member.id)
+
+    cursor.execute("SELECT saldo FROM usuarios WHERE id = %s", (uid,))
+    row = cursor.fetchone()
+
+    if not row:
+        cursor.execute("INSERT INTO usuarios (id, saldo) VALUES (%s, %s)", (uid, quantidade))
+    else:
+        cursor.execute("UPDATE usuarios SET saldo = saldo + %s WHERE id = %s", (quantidade, uid))
+
+    conn.commit()
 
     embed = discord.Embed(
-        title="💸 Dinheiro enviado!",
-        description=(
-            f"{ctx.author.mention} deu **{quantidade}** moedas para {membro.mention} 🔥\n\n"
-            f"💰 Novo saldo de {membro.display_name}: **{get_saldo(membro.id)}** moedas"
-        ),
-        color=discord.Color.green()
+        title="💸 Transferência realizada",
+        description=f"{ctx.author.mention} deu **{quantidade:,} moedas** para {member.mention} 😈🔥",
+        color=discord.Color.purple()
+    )
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def top(ctx):
+    cursor.execute(
+        "SELECT id, saldo FROM usuarios ORDER BY saldo DESC LIMIT 10"
+    )
+    rows = cursor.fetchall()
+
+    embed = discord.Embed(
+        title="💰 Top 10 mais ricos",
+        color=discord.Color.gold()
     )
 
-    embed.set_footer(text="Imortaloo GPT • imortal community 😎🔥")
+    for i, (uid, saldo) in enumerate(rows, start=1):
+        user = await bot.fetch_user(int(uid))
+        embed.add_field(
+            name=f"{i}º — {user.name}",
+            value=f"💵 {saldo:,} moedas",
+            inline=False
+        )
+
     await ctx.send(embed=embed)
 
 # ================= START =================
