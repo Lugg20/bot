@@ -164,7 +164,8 @@ async def on_message(message):
     with open(ARQUIVO, "w") as f:
         json.dump(dados, f, indent=4)
 
-if bot.user in message.mentions:
+    # Quando escrever o ID do bot manualmente
+    if message.content.strip() == "<@1396874802605854800>":
         embed = discord.Embed(
             title="📜 Comandos do Imortaloo GPT",
             description="Aqui estão todos os comandos disponíveis 😈🔥",
@@ -208,12 +209,11 @@ if bot.user in message.mentions:
                   "`?blackjack aposta`",
             inline=False
         )
-n
-        embed.set_footer(text="Imortaloo GPT • imortal community 😎🔥")
 
+        embed.set_footer(text="Imortaloo GPT • imortal community 😎🔥")
         await message.channel.send(embed=embed)
 
-    await bot.process_commands(message)
+    await bot.process_commands(message)9
 
 @bot.command()
 async def mensagens(ctx, membro: discord.Member = None):
