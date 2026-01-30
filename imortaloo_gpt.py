@@ -185,7 +185,6 @@ async def on_message(message):
         )
 
     conn.commit()
-    await bot.process_commands(message)
 
     # Quando escrever o ID do bot manualmente
     if message.content.strip() == "<@1396874802605854800>":
@@ -237,25 +236,6 @@ async def on_message(message):
         await message.channel.send(embed=embed)
 
     await bot.process_commands(message)
-
-@bot.command()
-async def mensagens(ctx, membro: discord.Member = None):
-
-    if ctx.channel.id not in CANAL_PERMITIDO:
-        return
-
-    if membro is None:
-        membro = ctx.author
-
-    uid = str(membro.id)
-    total_server = dados["total"]
-    user_total = dados["usuarios"].get(uid, 0)
-
-    await ctx.send(
-        f"📊 Total de mensagens no server: **{total_server}**\n"
-        f"🧑 {membro.display_name} já mandou: **{user_total}** mensagens\n"
-         " so conta desde qnd o comando foi criado porra"
-    )
 
 @bot.command()
 async def rank(ctx):
