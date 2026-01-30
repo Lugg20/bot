@@ -809,6 +809,85 @@ async def top(ctx):
 
     await ctx.send(embed=embed)
 
+@bot.command()
+async def doar(ctx, membro: discord.Member, quantidade: int):
+    uid = str(ctx.author.id)
+    tid = str(membro.id)
+
+    if quantidade <= 0:
+        return await ctx.send("❌ Quantidade inválida.")
+
+    saldo = get_saldo(uid)
+    if quantidade > saldo:
+        return await ctx.send("❌ Você não tem saldo suficiente.")
+
+    set_saldo(uid, saldo - quantidade)
+    set_saldo(tid, get_saldo(tid) + quantidade)
+
+    embed = discord.Embed(
+        title="🤝 Doação realizada!",
+        description=(
+            f"{ctx.author.mention} doou **{quantidade:,} moedas** para {membro.mention} 🪙🔥"
+        ),
+        color=discord.Color.green()
+    )
+
+    await ctx.send(embed=embed)
+
+esmolas_ativas = {}
+
+@bot.command()
+async def esmola(ctx, quantidade: int):
+    uid = str(ctx.author.id)
+
+    if quantidade <= 0:
+        return await ctx.send("❌ Quantidade inválida.")
+
+    embed = discord.Embed(
+        title="🙏 Pedido de esmola",
+        description=(
+            f"{ctx.author.mention} está pedindo **{quantidade:,} moedas** 🪙\n\n"
+            "Alguém pode aceitar ajudando no botão abaixo 👇"
+        ),
+        color=discord.Color.orange()
+    )
+
+    view = View(timeout=60)
+
+    async def aceitar(interaction: discord.Interaction):
+        doador = interaction.user
+        did = str(doador.id)
+
+        if did == uid:
+            return await interaction.response.send_message(
+                "❌ Você não pode aceitar sua própria esmola.", ephemeral=True
+            )
+
+        saldo = get_saldo(did)
+        if saldo < quantidade:
+            return await interaction.response.send_message(
+                "❌ Você não tem saldo suficiente.", ephemeral=True
+            )
+
+        set_saldo(did, saldo - quantidade)
+        set_saldo(uid, get_saldo(uid) + quantidade)
+
+        embed2 = discord.Embed(
+            title="💖 Esmola aceita!",
+            description=(
+                f"{doador.mention} deu **{quantidade:,} moedas** para {ctx.author.mention} 🪙🔥"
+            ),
+            color=discord.Color.green()
+        )
+
+        await interaction.response.edit_message(embed=embed2, view=None)
+
+    botao = Button(label="💸 Aceitar esmola", style=discord.ButtonStyle.green)
+    botao.callback = aceitar
+    view.add_item(botao)
+
+    await ctx.send(embed=embed, view=view)
+
 # ================= START =================
 TOKEN = os.getenv("DISCORD_TOKEN")
 bot.run(TOKEN)
