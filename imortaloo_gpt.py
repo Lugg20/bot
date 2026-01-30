@@ -461,15 +461,15 @@ async def mines(ctx, bombas: int, aposta: int):
     uid = str(ctx.author.id)
     saldo = get_saldo(uid)
 
-    if bombas < 1 or bombas > 24:
-        await ctx.send("❌ Bombas devem ser entre 1 e 24.")
+    if bombas < 3 or bombas > 17:
+        await ctx.send("❌ Bombas devem ser entre 3 e 17.")
         return
 
     if aposta <= 0 or aposta > saldo:
         await ctx.send("❌ Aposta inválida ou saldo insuficiente.")
         return
 
-    casas = list(range(1, 26))
+    casas = list(range(1, 19))
     bombas_pos = random.sample(casas, bombas)
     seguras = [c for c in casas if c not in bombas_pos]
 
@@ -504,8 +504,8 @@ async def pick(ctx, casa: int):
 
     jogo = mines_jogos[uid]
 
-    if casa < 1 or casa > 25:
-        await ctx.send("❌ Escolha uma casa entre 1 e 25.")
+    if casa < 1 or casa > 18:
+        await ctx.send("❌ Escolha uma casa entre 1 e 18.")
         return
 
     if casa in jogo["escolhidas"]:
