@@ -1,3 +1,4 @@
+print("🔥 BOT CARREGANDO ESTE ARQUIVO 🔥")
 import discord
 from discord.ext import commands
 import requests
