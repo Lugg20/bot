@@ -535,25 +535,6 @@ async def mines(ctx, bombas: int, aposta: int):
         color=discord.Color.orange()
     )
 
-    await ctx.send(embed=embed)
-
-# Aplica buff de chance se o usuário tiver
-chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)
-mines_jogos[uid]["multiplicador"] *= 1 + (chance_extra / 100)
-
-embed = discord.Embed(
-    title="💣 Mines iniciado!",
-    description=(
-        f"Bombas: **{bombas}**\n"
-        f"Aposta: **{aposta}** moedas\n\n"
-        "Escolha uma casa digitando: `?pick (1-18)`\n"
-        "Ou finalize com: `?cashout`"
-    ),
-    color=discord.Color.orange()
-)
-
-await ctx.send(embed=embed)
-
 @bot.command()
 async def pick(ctx, casa: int):
     uid = str(ctx.author.id)
@@ -653,7 +634,6 @@ async def blackjack(ctx, aposta: int):
         await ctx.send("❌ Aposta inválida ou saldo insuficiente, manin.")
         return
 
-    # Cria baralho simples (2 a 11, onde 11 = Ás)
     baralho = [2,3,4,5,6,7,8,9,10,10,10,10,11] * 4
     random.shuffle(baralho)
 
@@ -666,27 +646,14 @@ async def blackjack(ctx, aposta: int):
         "dealer": mao_dealer,
         "aposta": aposta
     }
-# Pega o buff do usuário
-chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)
-payout_extra = aposta_buffs.get(uid, {}).get("payout_extra", 0)
 
-# Multiplicador base do blackjack
-multiplicador = 2.0  # se ganhar, 2x
-multiplicador *= 1 + (payout_extra / 100)
+    # Buffs do usuário
+    chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)
+    payout_extra = aposta_buffs.get(uid, {}).get("payout_extra", 0)
 
-# Chance base de vitória
-chance_base = 50
-chance_total = chance_base + chance_extra
-
-# Sorteia resultado
-resultado = random.randint(1, 100)
-if resultado <= chance_total:
-    ganho = int(aposta * multiplicador)
-    set_saldo(uid, get_saldo(uid) + ganho)
-    await ctx.send(f"🎉 Você ganhou **{ganho}** moedas!")
-else:
-    set_saldo(uid, get_saldo(uid) - aposta)
-    await ctx.send(f"💥 Você perdeu **{aposta}** moedas!")
+    multiplicador = 2.0 * (1 + payout_extra / 100)
+    chance_total = 50 + chance_extra
+    resultado = random.randint(1, 100)
 
     embed = discord.Embed(
         title="🃏 Blackjack iniciado!",
@@ -697,8 +664,16 @@ else:
         ),
         color=discord.Color.dark_green()
     )
-
     await ctx.send(embed=embed)
+
+    # Resolva vitória/derrota após alguma ação, ou imediato se quiser simplificado:
+    if resultado <= chance_total:
+        ganho = int(aposta * multiplicador)
+        set_saldo(uid, saldo + ganho)
+        await ctx.send(f"🎉 Você ganhou **{ganho}** moedas!")
+    else:
+        set_saldo(uid, saldo - aposta)
+        await ctx.send(f"💥 Você perdeu **{aposta}** moedas!")
 
 @bot.command()
 async def hit(ctx):
