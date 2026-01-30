@@ -229,7 +229,7 @@ async def on_message(message):
             value="`?saldo`\n"
                   "`?daily`\n"
                   "`?mines bombas aposta`\n"
-                  "`?blackjack aposta`",
+                  "`?blackjack aposta`\n"
                   " ?top \n"
 		  " ?give @ user dinheiro so pra adm ",
             inline=False
