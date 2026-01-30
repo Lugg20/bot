@@ -6,7 +6,7 @@ import asyncio
 import random
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 # ================= CONFIG =================
 
 GEMINI_KEYS = os.getenv("GEMINI_KEYS", "").split(",")
