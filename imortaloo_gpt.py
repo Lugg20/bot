@@ -370,7 +370,6 @@ async def nuke(ctx):
 async def oi(ctx):
     await ctx.send("<a:b_MikoYaeFesta_RR:1461151107958046802>")
 
-# -------- ECONOMIA --------
 ECONOMIA_ARQ = "economia.json"
 
 if os.path.exists(ECONOMIA_ARQ):
@@ -453,7 +452,7 @@ async def blackjack(ctx, aposta: int):
 @bot.command()
 async def saldo(ctx):
     saldo = get_saldo(ctx.author.id)
-    await ctx.send(f"💰 {ctx.author.mention}, seu saldo é: **{saldo}** moedas.")
+    await ctx.send(f"💰 {ctx.author.mention}, seu saldo é: {saldo} moedas.")
 
 # ================= START =================
 TOKEN = os.getenv("DISCORD_TOKEN")
