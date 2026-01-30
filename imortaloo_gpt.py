@@ -230,6 +230,8 @@ async def on_message(message):
                   "`?daily`\n"
                   "`?mines bombas aposta`\n"
                   "`?blackjack aposta`",
+                  " ?top \n"
+		  " ?give @ user dinheiro so pra adm ",
             inline=False
         )
 
@@ -443,7 +445,7 @@ async def daily(ctx):
         if ultimo == hoje:
             embed = discord.Embed(
                 title="⏳ Daily já coletado",
-                description="Você já pegou seu daily hoje, manin 😈🔥",
+                description="Você já pegou seu daily hoje",
                 color=discord.Color.red()
             )
             return await ctx.send(embed=embed)
