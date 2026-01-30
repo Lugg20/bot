@@ -191,7 +191,7 @@ async def on_message(message):
     if message.content.strip() == "<@1396874802605854800>":
         embed = discord.Embed(
             title="📜 Comandos do Imortaloo GPT",
-            description="Aqui estão todos os comandos disponíveis 😈🔥",
+            description="Aqui estão todos os comandos disponíveis 🔥",
             color=discord.Color.red()
         )
 
@@ -230,8 +230,8 @@ async def on_message(message):
                   "`?daily`\n"
                   "`?mines bombas aposta`\n"
                   "`?blackjack aposta`\n"
-                  " ?top \n"
-		  " ?give @ user dinheiro so pra adm ",
+                  "`?top`\n"
+		  "`?give @ user dinheiro (so pra adm)` ",
             inline=False
         )
 
