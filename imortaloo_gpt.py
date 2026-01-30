@@ -231,7 +231,9 @@ async def on_message(message):
                   "`?mines bombas aposta`\n"
                   "`?blackjack aposta`\n"
                   "`?top`\n"
-		  "`?give @ user dinheiro (so pra adm)` ",
+		  "`?give @ user dinheiro (so pra adm)`\n"
+		  "`?doar (usuario) (quantidade)`\n"
+		  "`?esmola (quantidade)`",
             inline=False
         )
 
