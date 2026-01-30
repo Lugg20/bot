@@ -263,6 +263,29 @@ async def rank(ctx):
     await ctx.send(embed=embed)
 
 @bot.command()
+async def mensagens(ctx, membro: discord.Member = None):
+    if membro is None:
+        membro = ctx.author
+
+    uid = str(membro.id)
+
+    cursor.execute("SELECT mensagens FROM usuarios WHERE id = %s", (uid,))
+    row = cursor.fetchone()
+
+    total = row[0] if row else 0
+
+    embed = discord.Embed(
+        title="📊 Contador de mensagens",
+        description=(
+            f"👤 Usuário: {membro.mention}\n"
+            f"💬 Mensagens: **{total:,}**"
+        ),
+        color=discord.Color.blurple()
+    )
+
+    await ctx.send(embed=embed)
+
+@bot.command()
 async def ping(ctx, membro: discord.Member = None):
 
     if ctx.channel.id not in CANAL_PERMITIDO:
