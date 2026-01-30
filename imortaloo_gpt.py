@@ -186,7 +186,7 @@ if bot.user in message.mentions:
             inline=False
         )
 
-embed.add_field(
+        embed.add_field(
             name="🚨 Moderação",
             value="`?d @user motivo` ou responda uma mensagem e mande `?d`",
             inline=False
