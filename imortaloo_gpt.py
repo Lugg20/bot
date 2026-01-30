@@ -164,23 +164,54 @@ async def on_message(message):
     with open(ARQUIVO, "w") as f:
         json.dump(dados, f, indent=4)
 
-    # Responder quando escrever o nome/id do bot
-    if message.content.strip() in [
-        "@Imortaloo GPT#1727",
-        "<@1396874802605854800>"
-    ]:
-        await message.channel.send(
-            "📜 Comandos disponíveis:\n"
-            "Chat\n"
-            "Raid\n"
-            "Nuke\n"
-            "Molestar\n"
-            "Mensagens\n"
-            "Id\n"
-            "Ping\n"
-            "Rank\n"
-            "Denunciar/d"
-       )
+if bot.user in message.mentions:
+        embed = discord.Embed(
+            title="📜 Comandos do Imortaloo GPT",
+            description="Aqui estão todos os comandos disponíveis 😈🔥",
+            color=discord.Color.red()
+        )
+
+        embed.add_field(
+            name="💬 Chat",
+            value="`?chat mensagem`\nConversa com o bot",
+            inline=False
+        )
+
+        embed.add_field(
+            name="📊 Mensagens",
+            value="`?mensagens` — mostra quantas mensagens você mandou\n"
+                  "`?rank` — ranking de mensagens\n"
+                  "`?ping` — ping do bot\n"
+                  "`?id` — mostra seu ID",
+            inline=False
+        )
+
+embed.add_field(
+            name="🚨 Moderação",
+            value="`?d @user motivo` ou responda uma mensagem e mande `?d`",
+            inline=False
+        )
+
+        embed.add_field(
+            name="😈 Zoeiros",
+            value="`?raid`\n"
+                  "`?nuke`\n"
+                  "`?molestar @user`",
+            inline=False
+        )
+
+        embed.add_field(
+            name="💰 Economia",
+            value="`?saldo`\n"
+                  "`?daily`\n"
+                  "`?mines bombas aposta`\n"
+                  "`?blackjack aposta`",
+            inline=False
+        )
+n
+        embed.set_footer(text="Imortaloo GPT • imortal community 😎🔥")
+
+        await message.channel.send(embed=embed)
 
     await bot.process_commands(message)
 
@@ -371,6 +402,7 @@ async def nuke(ctx):
 async def oi(ctx):
     await ctx.send("<a:b_MikoYaeFesta_RR:1461151107958046802>")
 
+# ============== ECONOMIA ================
 ECONOMIA_ARQ = "economia.json"
 
 if os.path.exists(ECONOMIA_ARQ):
@@ -390,70 +422,297 @@ def set_saldo(uid, valor):
     with open(ECONOMIA_ARQ, "w") as f:
         json.dump(economia, f, indent=4)
 
+daily_usuarios = {}
+
 @bot.command()
-async def give(ctx, quantidade: int):
-    if quantidade <= 0:
-        await ctx.send("❌ Quantidade inválida, manin.")
-        return
+async def daily(ctx):
+    uid = str(ctx.author.id)
+    agora = datetime.now()
 
-    saldo = get_saldo(ctx.author.id)
-    set_saldo(ctx.author.id, saldo + quantidade)
+    if uid in daily_usuarios:
+        ultima = daily_usuarios[uid]
+        diferenca = agora - ultima
+        if diferenca.total_seconds() < 86400:
+            restante = 86400 - diferenca.total_seconds()
+            horas = int(restante // 3600)
+            minutos = int((restante % 3600) // 60)
+            await ctx.send(f"⏳ Ainda não, manin. Volta em **{horas}h {minutos}min**.")
+            return
 
-    await ctx.send(f"💸 {ctx.author.mention} ganhou **{quantidade}** moedas! Novo saldo: **{get_saldo(ctx.author.id)}**")
+    ganho = 10000
+    saldo = get_saldo(uid)
+    set_saldo(uid, saldo + ganho)
+    daily_usuarios[uid] = agora
+
+    embed = discord.Embed(
+        title="🎁 Daily recebido!",
+        description=f"{ctx.author.mention}, você ganhou **{ganho}** moedas!\n\nNovo saldo: **{get_saldo(uid)}** 💸",
+        color=discord.Color.green()
+    )
+
+    embed.set_footer(text="Volte amanhã pra mais🔥")
+
+    await ctx.send(embed=embed)
+
+mines_jogos = {}
 
 @bot.command()
 async def mines(ctx, bombas: int, aposta: int):
+    uid = str(ctx.author.id)
+    saldo = get_saldo(uid)
+
     if bombas < 1 or bombas > 24:
         await ctx.send("❌ Bombas devem ser entre 1 e 24.")
         return
 
-    saldo = get_saldo(ctx.author.id)
     if aposta <= 0 or aposta > saldo:
         await ctx.send("❌ Aposta inválida ou saldo insuficiente.")
         return
 
-    chance = (25 - bombas) / 25
-    ganhou = random.random() < chance
+    casas = list(range(1, 26))
+    bombas_pos = random.sample(casas, bombas)
+    seguras = [c for c in casas if c not in bombas_pos]
 
-    if ganhou:
-        ganho = aposta * 2
-        set_saldo(ctx.author.id, saldo + ganho)
-        await ctx.send(f"💎 Você sobreviveu às minas e ganhou **{ganho}** moedas! Novo saldo: **{get_saldo(ctx.author.id)}**")
-    else:
-        set_saldo(ctx.author.id, saldo - aposta)
-        await ctx.send(f"💥 BOOM! Você perdeu **{aposta}** moedas. Novo saldo: **{get_saldo(ctx.author.id)}**")
+    mines_jogos[uid] = {
+        "bombas": bombas_pos,
+        "seguras": seguras,
+        "escolhidas": [],
+        "aposta": aposta,
+        "multiplicador": 1.0
+    }
+
+    embed = discord.Embed(
+        title="💣 Mines iniciado!",
+        description=(
+            f"Bombas: **{bombas}**\n"
+            f"Aposta: **{aposta}** moedas\n\n"
+            "Escolha uma casa digitando: `?pick (1-25)`\n"
+            "Ou finalize com: `?cashout`"
+        ),
+        color=discord.Color.orange()
+    )
+
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def pick(ctx, casa: int):
+    uid = str(ctx.author.id)
+
+    if uid not in mines_jogos:
+        await ctx.send("❌ Você não está em um jogo de mines.")
+        return
+
+    jogo = mines_jogos[uid]
+
+    if casa < 1 or casa > 25:
+        await ctx.send("❌ Escolha uma casa entre 1 e 25.")
+        return
+
+    if casa in jogo["escolhidas"]:
+        await ctx.send("❌ Você já escolheu essa casa.")
+        return
+
+    jogo["escolhidas"].append(casa)
+
+    if casa in jogo["bombas"]:
+        set_saldo(uid, get_saldo(uid) - jogo["aposta"])
+        del mines_jogos[uid]
+
+        embed = discord.Embed(
+            title="💥 BOOM!",
+            description=f"Você caiu na bomba na casa **{casa}**!\nPerdeu **{jogo['aposta']}** moedas 😭",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    # Casa segura
+    jogo["multiplicador"] += 0.5 + (len(jogo["bombas"]) * 0.1)
+    ganho_atual = int(jogo["aposta"] * jogo["multiplicador"])
+
+    embed = discord.Embed(
+        title="💎 Casa segura!",
+        description=(
+            f"Casa **{casa}** estava segura!\n\n"
+            f"Casas escolhidas: {jogo['escolhidas']}\n"
+            f"Multiplicador: **x{jogo['multiplicador']:.2f}**\n"
+            f"Ganho atual: **{ganho_atual}** moedas\n\n"
+            "Digite `?pick` para continuar ou `?cashout` para sacar."
+        ),
+        color=discord.Color.green()
+    )
+
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def cashout(ctx):
+    uid = str(ctx.author.id)
+
+    if uid not in mines_jogos:
+        await ctx.send("❌ Você não está em um jogo de mines.")
+        return
+
+    jogo = mines_jogos[uid]
+    ganho = int(jogo["aposta"] * jogo["multiplicador"])
+    set_saldo(uid, get_saldo(uid) + ganho)
+    del mines_jogos[uid]
+
+    embed = discord.Embed(
+        title="🏦 Cashout!",
+        description=f"Você sacou **{ganho}** moedas!\nBoa jogada 😈🔥",
+        color=discord.Color.gold()
+    )
+
+    await ctx.send(embed=embed)
+
+blackjack_jogos = {}
+
+def valor_mao(mao):
+    valor = sum(mao)
+    ases = mao.count(11)
+    while valor > 21 and ases:
+        valor -= 10
+        ases -= 1
+    return valor
 
 @bot.command()
 async def blackjack(ctx, aposta: int):
-    saldo = get_saldo(ctx.author.id)
+    uid = str(ctx.author.id)
+    saldo = get_saldo(uid)
+
     if aposta <= 0 or aposta > saldo:
-        await ctx.send("❌ Aposta inválida ou saldo insuficiente.")
+        await ctx.send("❌ Aposta inválida ou saldo insuficiente, manin.")
         return
 
-    def carta():
-        return random.randint(1, 11)
+    # Cria baralho simples (2 a 11, onde 11 = Ás)
+    baralho = [2,3,4,5,6,7,8,9,10,10,10,10,11] * 4
+    random.shuffle(baralho)
 
-    player = carta() + carta()
-    dealer = carta() + carta()
+    mao_player = [baralho.pop(), baralho.pop()]
+    mao_dealer = [baralho.pop(), baralho.pop()]
 
-    if player > 21:
-        set_saldo(ctx.author.id, saldo - aposta)
-        await ctx.send(f"🃏 Você estourou com {player}! Perdeu **{aposta}** moedas.")
+    blackjack_jogos[uid] = {
+        "baralho": baralho,
+        "player": mao_player,
+        "dealer": mao_dealer,
+        "aposta": aposta
+    }
+
+    embed = discord.Embed(
+        title="🃏 Blackjack iniciado!",
+        description=(
+            f"**Sua mão:** {mao_player} → **{valor_mao(mao_player)}**\n"
+            f"**Dealer:** [{mao_dealer[0]}, ❓]\n\n"
+            "Digite `?hit` para puxar carta ou `?stand` para parar."
+        ),
+        color=discord.Color.dark_green()
+    )
+
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def hit(ctx):
+    uid = str(ctx.author.id)
+
+    if uid not in blackjack_jogos:
+        await ctx.send("❌ Você não está em um jogo de blackjack.")
         return
 
-    if dealer > 21 or player > dealer:
-        set_saldo(ctx.author.id, saldo + aposta)
-        await ctx.send(f"🃏 Você ganhou! ({player} vs {dealer}) +**{aposta}** moedas.")
-    elif player < dealer:
-        set_saldo(ctx.author.id, saldo - aposta)
-        await ctx.send(f"🃏 Você perdeu! ({player} vs {dealer}) -**{aposta}** moedas.")
+    jogo = blackjack_jogos[uid]
+    baralho = jogo["baralho"]
+    mao_player = jogo["player"]
+    mao_dealer = jogo["dealer"]
+    aposta = jogo["aposta"]
+
+    mao_player.append(baralho.pop())
+    valor = valor_mao(mao_player)
+
+    if valor > 21:
+        set_saldo(uid, get_saldo(uid) - aposta)
+        del blackjack_jogos[uid]
+
+        embed = discord.Embed(
+            title="💥 Estourou!",
+            description=f"Sua mão: {mao_player} → **{valor}**\nVocê perdeu **{aposta}** moedas 😭",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    embed = discord.Embed(
+        title="🃏 Blackjack",
+        description=(
+            f"**Sua mão:** {mao_player} → **{valor}**\n"
+            f"**Dealer:** [{mao_dealer[0]}, ❓]\n\n"
+            "Digite `?hit` ou `?stand`."
+        ),
+        color=discord.Color.dark_green()
+    )
+
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def stand(ctx):
+    uid = str(ctx.author.id)
+
+    if uid not in blackjack_jogos:
+        await ctx.send("❌ Você não está em um jogo de blackjack.")
+        return
+
+    jogo = blackjack_jogos[uid]
+    baralho = jogo["baralho"]
+    mao_player = jogo["player"]
+    mao_dealer = jogo["dealer"]
+    aposta = jogo["aposta"]
+
+    while valor_mao(mao_dealer) < 17:
+        mao_dealer.append(baralho.pop())
+
+    valor_p = valor_mao(mao_player)
+    valor_d = valor_mao(mao_dealer)
+
+    resultado = ""
+    cor = discord.Color.gold()
+
+    if valor_d > 21 or valor_p > valor_d:
+        set_saldo(uid, get_saldo(uid) + aposta)
+        resultado = f"🏆 Você ganhou **{aposta}** moedas!"
+        cor = discord.Color.green()
+    elif valor_p < valor_d:
+        set_saldo(uid, get_saldo(uid) - aposta)
+        resultado = f"😭 Você perdeu **{aposta}** moedas."
+        cor = discord.Color.red()
     else:
-        await ctx.send(f"🃏 Empate! ({player} vs {dealer}) Nenhuma moeda perdida.")
+        resultado = "😐 Empate! Nenhuma moeda ganha ou perdida."
+
+    del blackjack_jogos[uid]
+
+    embed = discord.Embed(
+        title="🃏 Resultado do Blackjack",
+        description=(
+            f"**Sua mão:** {mao_player} → **{valor_p}**\n"
+            f"**Dealer:** {mao_dealer} → **{valor_d}**\n\n"
+            f"{resultado}"
+        ),
+        color=cor
+    )
+
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def saldo(ctx):
-    saldo = get_saldo(ctx.author.id)
-    await ctx.send(f"💰 {ctx.author.mention}, seu saldo é: {saldo} moedas.")
+    uid = str(ctx.author.id)
+    saldo = get_saldo(uid)
+
+    embed = discord.Embed(
+        title="💰 Seu saldo",
+        description=f"{ctx.author.mention}, você tem **{saldo}** moedas!",
+        color=discord.Color.gold()
+    )
+
+    embed.set_footer(text="Sistema econômico imortal 🔥")
+
+    await ctx.send(embed=embed)
 
 # ================= START =================
 TOKEN = os.getenv("DISCORD_TOKEN")
