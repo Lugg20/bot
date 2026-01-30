@@ -233,7 +233,7 @@ async def on_message(message):
                   "`?top`\n"
 		  "`?give @ user dinheiro (so pra adm)`\n"
 		  "`?doar (usuario) (quantidade)`\n"
-		  "`?esmola (quantidade)`",
+		  "`?mendigar (quantidade)`",
             inline=False
         )
 
@@ -839,7 +839,7 @@ async def doar(ctx, membro: discord.Member, quantidade: int):
 esmolas_ativas = {}
 
 @bot.command()
-async def esmola(ctx, quantidade: int):
+async def mendigar(ctx, quantidade: int):
     uid = str(ctx.author.id)
 
     if quantidade <= 0:
