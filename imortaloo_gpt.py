@@ -7,6 +7,7 @@ import random
 import os
 import json
 from datetime import datetime, timedelta
+from datetime import date
 # ================= CONFIG =================
 import psycopg2
 
@@ -430,20 +431,19 @@ async def daily(ctx):
     cursor.execute("SELECT ultimo_daily, saldo FROM usuarios WHERE id = %s", (uid,))
     row = cursor.fetchone()
 
-    if not row:
+    if row is None:
+        ganho = 100000
         cursor.execute(
-            "INSERT INTO usuarios (id, saldo, ultimo_daily) VALUES (%s, %s, %s)",
-            (uid, 100000, hoje)
+            "INSERT INTO usuarios (id, saldo, mensagens, ultimo_daily) VALUES (%s, %s, 0, %s)",
+            (uid, ganho, hoje)
         )
         conn.commit()
-        ganho = 100000
     else:
         ultimo, saldo = row
-
-        if ultimo is not None and ultimo == hoje:
+        if ultimo == hoje:
             embed = discord.Embed(
                 title="⏳ Daily já coletado",
-                description="Você já pegou seu daily hoje, volta amanhã 😈",
+                description="Você já pegou seu daily hoje, manin 😈🔥",
                 color=discord.Color.red()
             )
             return await ctx.send(embed=embed)
@@ -454,13 +454,6 @@ async def daily(ctx):
             (ganho, hoje, uid)
         )
         conn.commit()
-
-    embed = discord.Embed(
-        title="🎁 Daily coletado!",
-        description=f"Você ganhou **{ganho:,} moedas** 🪙🔥",
-        color=discord.Color.green()
-    )
-    await ctx.send(embed=embed)
 
     embed = discord.Embed(
         title="🎁 Daily coletado!",
@@ -755,7 +748,7 @@ async def give(ctx, member: discord.Member, quantidade: int):
 
     embed = discord.Embed(
         title="💸 Transferência realizada",
-        description=f"{ctx.author.mention} deu **{quantidade:,} moedas** para {member.mention} 😈🔥",
+        description=f"{ctx.author.mention} deu **{quantidade:,} moedas** para {member.mention} 🔥",
         color=discord.Color.purple()
     )
     await ctx.send(embed=embed)
