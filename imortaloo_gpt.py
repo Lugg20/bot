@@ -1,3 +1,4 @@
+saldos = {}
 mensagens_enviadas = {}
 mensagens_usuario = {}
 import discord
