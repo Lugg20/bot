@@ -486,7 +486,7 @@ async def mines(ctx, bombas: int, aposta: int):
         description=(
             f"Bombas: **{bombas}**\n"
             f"Aposta: **{aposta}** moedas\n\n"
-            "Escolha uma casa digitando: `?pick (1-25)`\n"
+            "Escolha uma casa digitando: `?pick (1-18)`\n"
             "Ou finalize com: `?cashout`"
         ),
         color=discord.Color.orange()
