@@ -586,14 +586,23 @@ async def cashout(ctx):
         return
 
     jogo = mines_jogos[uid]
+
+    if len(jogo["escolhidas"]) == 0:
+        await ctx.send("❌ Você precisa escolher pelo menos uma casa antes de sacar.")
+        return
+
     ganho = int(jogo["aposta"] * jogo["multiplicador"])
     set_saldo(uid, get_saldo(uid) + ganho)
     del mines_jogos[uid]
 
     embed = discord.Embed(
-        title="🏦 Cashout!",
-        description=f"Você sacou **{ganho}** moedas!\nBoa jogada 🔥",
-        color=discord.Color.gold()
+        title="💰 Cashout realizado!",
+        description=(
+            f"Você sacou **{ganho:,} moedas** 🪙🔥\n"
+            f"Casas escolhidas: {jogo['escolhidas']}\n"
+            f"Multiplicador final: **x{jogo['multiplicador']:.2f}**"
+        ),
+        color=discord.Color.green()
     )
 
     await ctx.send(embed=embed)
