@@ -450,6 +450,9 @@ def set_saldo(uid, valor):
     cursor.execute("UPDATE usuarios SET saldo = %s WHERE id = %s", (valor, uid))
     conn.commit()
 
+# Guarda os buffs de aposta dos usuários
+aposta_buffs = {}
+
 @bot.command()
 async def daily(ctx):
     uid = str(ctx.author.id)
@@ -515,6 +518,9 @@ async def mines(ctx, bombas: int, aposta: int):
         "aposta": aposta,
         "multiplicador": 1.0
     }
+chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)
+mines_jogos[uid]["multiplicador"] *= 1 + (chance_extra / 100)
+
 
     embed = discord.Embed(
         title="💣 Mines iniciado!",
@@ -641,6 +647,27 @@ async def blackjack(ctx, aposta: int):
         "dealer": mao_dealer,
         "aposta": aposta
     }
+# Pega o buff do usuário
+chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)
+payout_extra = aposta_buffs.get(uid, {}).get("payout_extra", 0)
+
+# Multiplicador base do blackjack
+multiplicador = 2.0  # se ganhar, 2x
+multiplicador *= 1 + (payout_extra / 100)
+
+# Chance base de vitória
+chance_base = 50
+chance_total = chance_base + chance_extra
+
+# Sorteia resultado
+resultado = random.randint(1, 100)
+if resultado <= chance_total:
+    ganho = int(aposta * multiplicador)
+    set_saldo(uid, get_saldo(uid) + ganho)
+    await ctx.send(f"🎉 Você ganhou **{ganho}** moedas!")
+else:
+    set_saldo(uid, get_saldo(uid) - aposta)
+    await ctx.send(f"💥 Você perdeu **{aposta}** moedas!")
 
     embed = discord.Embed(
         title="🃏 Blackjack iniciado!",
@@ -889,6 +916,73 @@ async def mendigar(ctx, quantidade: int):
     view.add_item(botao)
 
     await ctx.send(embed=embed, view=view)
+
+from discord.ui import View, Button
+
+LOJA_HUD = {
+    "reset": {
+        "nome": "💣 Reset Global",
+        "preco": 1_000_000_000_000,
+        "descricao": "Reseta o dinheiro de TODOS os usuários."
+    },
+    "aposta_1": {
+        "nome": "🎲 Sorte Aposta 1",
+        "preco": 500_000,
+        "descricao": "Aumenta sua chance de ganhar nas apostas (mínimo 10% extra)."
+    },
+    "aposta_2": {
+        "nome": "🎰 Sorte Aposta 2",
+        "preco": 750_000,
+        "descricao": "Aumenta ainda mais sua sorte nos jogos de aposta (mínimo 20% extra)."
+    }
+}
+
+class LojaHUDView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        for key, item in LOJA_HUD.items():
+            self.add_item(Button(
+                label=f"{item['nome']} ({item['preco']:,})",
+                style=discord.ButtonStyle.red,
+                custom_id=key
+            ))
+
+@bot.command()
+async def loja(ctx):
+    embed = discord.Embed(title="🛒 Loja HUD", color=discord.Color.red())
+    for item in LOJA_HUD.values():
+        embed.add_field(
+            name=f"{item['nome']} - {item['preco']:,} moedas",
+            value=item['descricao'],
+            inline=False
+        )
+    await ctx.send(embed=embed, view=LojaHUDView())
+
+@bot.event
+async def on_interaction(interaction: discord.Interaction):
+    if interaction.type != discord.InteractionType.component:
+        return
+
+    uid = str(interaction.user.id)
+    key = interaction.data["custom_id"]
+    if key not in LOJA_HUD:
+        return
+
+    item = LOJA_HUD[key]
+    saldo = get_saldo(uid)
+
+    if saldo < item["preco"]:
+        await interaction.response.send_message("❌ Sem dinheiro suficiente!", ephemeral=True)
+        return
+
+    set_saldo(uid, saldo - item["preco"])
+
+    if key == "reset":
+        cursor.execute("UPDATE usuarios SET saldo = 0")
+        conn.commit()
+        await interaction.response.send_message("💣 **RESET GLOBAL ATIVADO!** Todo mundo ficou pobre. 💀", ephemeral=False)
+    else:
+        await interaction.response.send_message(f"✅ Você comprou **{item['nome']}**!", ephemeral=True)
 
 # ================= START =================
 TOKEN = os.getenv("DISCORD_TOKEN")
