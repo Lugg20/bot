@@ -512,28 +512,30 @@ async def mines(ctx, bombas: int, aposta: int):
     bombas_pos = random.sample(casas, bombas)
     seguras = [c for c in casas if c not in bombas_pos]
 
-    mines_jogos[uid] = {
-        "bombas": bombas_pos,
-        "seguras": seguras,
-        "escolhidas": [],
-        "aposta": aposta,
-        "multiplicador": 1.0
-    }
+mines_jogos[uid] = {
+    "bombas": bombas_pos,
+    "seguras": seguras,
+    "escolhidas": [],
+    "aposta": aposta,
+    "multiplicador": 1.0
+}
+
+# Aplica buff de chance se o usuário tiver
 chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)
 mines_jogos[uid]["multiplicador"] *= 1 + (chance_extra / 100)
 
-    embed = discord.Embed(
-        title="💣 Mines iniciado!",
-        description=(
-            f"Bombas: **{bombas}**\n"
-            f"Aposta: **{aposta}** moedas\n\n"
-            "Escolha uma casa digitando: `?pick (1-18)`\n"
-            "Ou finalize com: `?cashout`"
-        ),
-        color=discord.Color.orange()
-    )
+embed = discord.Embed(
+    title="💣 Mines iniciado!",
+    description=(
+        f"Bombas: **{bombas}**\n"
+        f"Aposta: **{aposta}** moedas\n\n"
+        "Escolha uma casa digitando: `?pick (1-18)`\n"
+        "Ou finalize com: `?cashout`"
+    ),
+    color=discord.Color.orange()
+)
 
-    await ctx.send(embed=embed)
+await ctx.send(embed=embed)
 
 @bot.command()
 async def pick(ctx, casa: int):
