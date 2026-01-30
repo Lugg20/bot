@@ -422,10 +422,6 @@ def set_saldo(uid, valor):
     cursor.execute("UPDATE usuarios SET saldo = %s WHERE id = %s", (valor, uid))
     conn.commit()
 
-daily_usuarios = {}
-
-from datetime import date
-
 @bot.command()
 async def daily(ctx):
     uid = str(ctx.author.id)
@@ -444,28 +440,27 @@ async def daily(ctx):
     else:
         ultimo, saldo = row
 
-        # Se nunca pegou daily antes
-        if ultimo is None:
-            ganho = 100000
-            cursor.execute(
-                "UPDATE usuarios SET saldo = saldo + %s, ultimo_daily = %s WHERE id = %s",
-                (ganho, hoje, uid)
-            )
-            conn.commit()
-        elif ultimo == hoje:
+        if ultimo is not None and ultimo == hoje:
             embed = discord.Embed(
                 title="⏳ Daily já coletado",
-                description="Você já pegou seu daily hoje, manin 😈🔥",
+                description="Você já pegou seu daily hoje, volta amanhã 😈",
                 color=discord.Color.red()
             )
             return await ctx.send(embed=embed)
-        else:
-            ganho = 100000
-            cursor.execute(
-                "UPDATE usuarios SET saldo = saldo + %s, ultimo_daily = %s WHERE id = %s",
-                (ganho, hoje, uid)
-            )
-            conn.commit()
+
+        ganho = 100000
+        cursor.execute(
+            "UPDATE usuarios SET saldo = saldo + %s, ultimo_daily = %s WHERE id = %s",
+            (ganho, hoje, uid)
+        )
+        conn.commit()
+
+    embed = discord.Embed(
+        title="🎁 Daily coletado!",
+        description=f"Você ganhou **{ganho:,} moedas** 🪙🔥",
+        color=discord.Color.green()
+    )
+    await ctx.send(embed=embed)
 
     embed = discord.Embed(
         title="🎁 Daily coletado!",
