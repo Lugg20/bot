@@ -1,6 +1,3 @@
-saldos = {}
-mensagens_enviadas = {}
-mensagens_usuario = {}
 import discord
 from discord.ext import commands
 import requests
@@ -27,9 +24,6 @@ intents.message_content = True
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 key_index = 0  # controle do revezamento
-
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 # ================= PERSONALIDADE FIXA =================
 SYSTEM_PROMPT = (
@@ -458,12 +452,8 @@ async def blackjack(ctx, aposta: int):
 
 @bot.command()
 async def saldo(ctx):
-    user_id = str(ctx.author.id)
-
-    if user_id not in saldos:
-        saldos[user_id] = 0
-
-    await ctx.send(f"💰 {ctx.author.mention}, seu saldo é: {saldos[user_id]} moedas.")
+    saldo = get_saldo(ctx.author.id)
+    await ctx.send(f"💰 {ctx.author.mention}, seu saldo é: **{saldo}** moedas.")
 
 # ================= START =================
 TOKEN = os.getenv("DISCORD_TOKEN")
