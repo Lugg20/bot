@@ -210,7 +210,7 @@ async def on_message(message):
             inline=False
         )
 
-        embed.set_footer(text="Imortaloo GPT • imortal community 😎🔥")
+        embed.set_footer(text="Imortaloo GPT • imortal community ")
         await message.channel.send(embed=embed)
 
     await bot.process_commands(message)
@@ -439,7 +439,7 @@ async def daily(ctx):
             await ctx.send(f"⏳ Ainda não, manin. Volta em **{horas}h {minutos}min**.")
             return
 
-    ganho = 10000
+    ganho = 100000
     saldo = get_saldo(uid)
     set_saldo(uid, saldo + ganho)
     daily_usuarios[uid] = agora
@@ -559,7 +559,7 @@ async def cashout(ctx):
 
     embed = discord.Embed(
         title="🏦 Cashout!",
-        description=f"Você sacou **{ganho}** moedas!\nBoa jogada 😈🔥",
+        description=f"Você sacou **{ganho}** moedas!\nBoa jogada 🔥",
         color=discord.Color.gold()
     )
 
@@ -712,6 +712,33 @@ async def saldo(ctx):
 
     embed.set_footer(text="Sistema econômico imortal 🔥")
 
+    await ctx.send(embed=embed)
+
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def give(ctx, membro: discord.Member, quantidade: int):
+    if quantidade <= 0:
+        embed = discord.Embed(
+            title="❌ Erro",
+            description="Quantidade inválida, manin.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+
+    saldo_atual = get_saldo(membro.id)
+    set_saldo(membro.id, saldo_atual + quantidade)
+
+    embed = discord.Embed(
+        title="💸 Dinheiro enviado!",
+        description=(
+            f"{ctx.author.mention} deu **{quantidade}** moedas para {membro.mention} 🔥\n\n"
+            f"💰 Novo saldo de {membro.display_name}: **{get_saldo(membro.id)}** moedas"
+        ),
+        color=discord.Color.green()
+    )
+
+    embed.set_footer(text="Imortaloo GPT • imortal community 😎🔥")
     await ctx.send(embed=embed)
 
 # ================= START =================
