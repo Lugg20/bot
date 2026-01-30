@@ -213,7 +213,7 @@ async def on_message(message):
         embed.set_footer(text="Imortaloo GPT • imortal community 😎🔥")
         await message.channel.send(embed=embed)
 
-    await bot.process_commands(message)9
+    await bot.process_commands(message)
 
 @bot.command()
 async def mensagens(ctx, membro: discord.Member = None):
