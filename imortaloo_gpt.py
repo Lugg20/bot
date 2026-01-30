@@ -233,7 +233,8 @@ async def on_message(message):
                   "`?top`\n"
 		  "`?give @ user dinheiro (so pra adm)`\n"
 		  "`?doar (usuario) (quantidade)`\n"
-		  "`?mendigar (quantidade)`",
+		  "`?mendigar (quantidade)`\n"
+		  "`?loja`",
             inline=False
         )
 
@@ -520,7 +521,6 @@ async def mines(ctx, bombas: int, aposta: int):
     }
 chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)
 mines_jogos[uid]["multiplicador"] *= 1 + (chance_extra / 100)
-
 
     embed = discord.Embed(
         title="💣 Mines iniciado!",
