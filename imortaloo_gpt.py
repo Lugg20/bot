@@ -289,11 +289,6 @@ async def definir(ctx, canal1: discord.TextChannel = None, canal2: discord.TextC
     canais_txt = " e ".join(c.mention for c in [canal1, canal2] if c)
     await ctx.send(f"✅ Canal permitido atualizado: {canais_txt}")
 
-@bot.command()
-async def saldo(ctx):
-    saldo = get_saldo(ctx.author.id)
-    await ctx.send(f"💰 {ctx.author.mention}, seu saldo é: {saldo} moedas.")
-
 # ================= FUNÇÃO GEMINI =================
 def chamar_gemini(mensagem):
     global key_index
