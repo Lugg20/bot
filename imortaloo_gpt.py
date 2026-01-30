@@ -443,20 +443,29 @@ async def daily(ctx):
         ganho = 100000
     else:
         ultimo, saldo = row
-        if ultimo == hoje:
+
+        # Se nunca pegou daily antes
+        if ultimo is None:
+            ganho = 100000
+            cursor.execute(
+                "UPDATE usuarios SET saldo = saldo + %s, ultimo_daily = %s WHERE id = %s",
+                (ganho, hoje, uid)
+            )
+            conn.commit()
+        elif ultimo == hoje:
             embed = discord.Embed(
                 title="⏳ Daily já coletado",
-                description="Você já pegou seu daily hoje",
+                description="Você já pegou seu daily hoje, manin 😈🔥",
                 color=discord.Color.red()
             )
             return await ctx.send(embed=embed)
-
-        ganho = 100000
-        cursor.execute(
-            "UPDATE usuarios SET saldo = saldo + %s, ultimo_daily = %s WHERE id = %s",
-            (ganho, hoje, uid)
-        )
-        conn.commit()
+        else:
+            ganho = 100000
+            cursor.execute(
+                "UPDATE usuarios SET saldo = saldo + %s, ultimo_daily = %s WHERE id = %s",
+                (ganho, hoje, uid)
+            )
+            conn.commit()
 
     embed = discord.Embed(
         title="🎁 Daily coletado!",
