@@ -375,6 +375,95 @@ async def nuke(ctx):
 async def oi(ctx):
     await ctx.send("<a:b_MikoYaeFesta_RR:1461151107958046802>")
 
+# -------- ECONOMIA --------
+ECONOMIA_ARQ = "economia.json"
+
+if os.path.exists(ECONOMIA_ARQ):
+    with open(ECONOMIA_ARQ, "r") as f:
+        economia = json.load(f)
+else:
+    economia = {}
+
+def get_saldo(uid):
+    uid = str(uid)
+    if uid not in economia:
+        economia[uid] = 0
+    return economia[uid]
+
+def set_saldo(uid, valor):
+    economia[str(uid)] = valor
+    with open(ECONOMIA_ARQ, "w") as f:
+        json.dump(economia, f, indent=4)
+
+@bot.command()
+async def give(ctx, quantidade: int):
+    if quantidade <= 0:
+        await ctx.send("❌ Quantidade inválida, manin.")
+        return
+
+    saldo = get_saldo(ctx.author.id)
+    set_saldo(ctx.author.id, saldo + quantidade)
+
+    await ctx.send(f"💸 {ctx.author.mention} ganhou **{quantidade}** moedas! Novo saldo: **{get_saldo(ctx.author.id)}**")
+
+@bot.command()
+async def mines(ctx, bombas: int, aposta: int):
+    if bombas < 1 or bombas > 24:
+        await ctx.send("❌ Bombas devem ser entre 1 e 24.")
+        return
+
+    saldo = get_saldo(ctx.author.id)
+    if aposta <= 0 or aposta > saldo:
+        await ctx.send("❌ Aposta inválida ou saldo insuficiente.")
+        return
+
+    chance = (25 - bombas) / 25
+    ganhou = random.random() < chance
+
+    if ganhou:
+        ganho = aposta * 2
+        set_saldo(ctx.author.id, saldo + ganho)
+        await ctx.send(f"💎 Você sobreviveu às minas e ganhou **{ganho}** moedas! Novo saldo: **{get_saldo(ctx.author.id)}**")
+    else:
+        set_saldo(ctx.author.id, saldo - aposta)
+        await ctx.send(f"💥 BOOM! Você perdeu **{aposta}** moedas. Novo saldo: **{get_saldo(ctx.author.id)}**")
+
+@bot.command()
+async def blackjack(ctx, aposta: int):
+    saldo = get_saldo(ctx.author.id)
+    if aposta <= 0 or aposta > saldo:
+        await ctx.send("❌ Aposta inválida ou saldo insuficiente.")
+        return
+
+    def carta():
+        return random.randint(1, 11)
+
+    player = carta() + carta()
+    dealer = carta() + carta()
+
+    if player > 21:
+        set_saldo(ctx.author.id, saldo - aposta)
+        await ctx.send(f"🃏 Você estourou com {player}! Perdeu **{aposta}** moedas.")
+        return
+
+    if dealer > 21 or player > dealer:
+        set_saldo(ctx.author.id, saldo + aposta)
+        await ctx.send(f"🃏 Você ganhou! ({player} vs {dealer}) +**{aposta}** moedas.")
+    elif player < dealer:
+        set_saldo(ctx.author.id, saldo - aposta)
+        await ctx.send(f"🃏 Você perdeu! ({player} vs {dealer}) -**{aposta}** moedas.")
+    else:
+        await ctx.send(f"🃏 Empate! ({player} vs {dealer}) Nenhuma moeda perdida.")
+
+@bot.command()
+async def saldo(ctx):
+    user_id = str(ctx.author.id)
+
+    if user_id not in saldos:
+        saldos[user_id] = 0
+
+    await ctx.send(f"💰 {ctx.author.mention}, seu saldo é: {saldos[user_id]} moedas.")
+
 # ================= START =================
 TOKEN = os.getenv("DISCORD_TOKEN")
 bot.run(TOKEN)
