@@ -541,52 +541,80 @@ async def mines(ctx, bombas: int, aposta: int):
 @bot.command()
 async def pick(ctx, casa: int):
     uid = str(ctx.author.id)
+
     if uid not in mines_jogos:
-        await ctx.send("❌ Você não iniciou um Mines, manin. Use `?mines`.")
+        await ctx.send("❌ Você não iniciou um jogo de Mines, manin.")
         return
 
     jogo = mines_jogos[uid]
+
+    if casa < 1 or casa > 18:
+        await ctx.send("❌ Casa inválida, escolha entre 1 e 18.")
+        return
+
     if casa in jogo["escolhidas"]:
-        await ctx.send("⚠️ Você já escolheu essa casa!")
+        await ctx.send("❌ Você já escolheu essa casa!")
         return
 
     jogo["escolhidas"].append(casa)
 
+    # Verifica se acertou bomba
     if casa in jogo["bombas"]:
-        # perdeu
         set_saldo(uid, get_saldo(uid) - jogo["aposta"])
+        await ctx.send(f"💥 BOOM! Casa {casa} era uma bomba! Você perdeu **{jogo['aposta']}** moedas!")
         del mines_jogos[uid]
-        await ctx.send(f"💥 BOOM! Você caiu numa bomba e perdeu **{jogo['aposta']}** moedas.")
-        return
-    else:
-        # ganha multiplicador por escolha
-        jogo["multiplicador"] *= 1 + (0.2 + aposta_buffs.get(uid, {}).get("chance_extra",0)/100)
-        await ctx.send(f"✅ Casa segura! Multiplicador atual: x{jogo['multiplicador']:.2f}")
-
-# ===== cashout =====
-@bot.command()
-async def cashout(ctx):
-    uid = str(ctx.author.id)
-    if uid not in mines_jogos:
-        await ctx.send("❌ Você não está jogando Mines, manin.")
         return
 
-    jogo = mines_jogos[uid]
-    ganho = int(jogo["aposta"] * jogo["multiplicador"])
-    set_saldo(uid, get_saldo(uid) + ganho)
+    # Calcula novo multiplicador
+    casas_selecionadas = len(jogo["escolhidas"])
+    total_seguras = len(jogo["seguras"])
+    multiplicador = 1.0 + (casas_selecionadas / total_seguras)  # básico
+    payout_extra = aposta_buffs.get(uid, {}).get("payout_extra", 0)
+    multiplicador *= 1 + (payout_extra / 100)
+    jogo["multiplicador"] = multiplicador
 
-    # mostra casas escolhidas e multiplicador final
+    ganho_atual = int(jogo["aposta"] * multiplicador)
+
     embed = discord.Embed(
-        title="💰 Cashout Mines!",
+        title="💎 Casa segura!",
         description=(
+            f"Casa {casa} estava segura!\n\n"
             f"Casas escolhidas: {jogo['escolhidas']}\n"
-            f"Multiplicador final: x{jogo['multiplicador']:.2f}\n"
-            f"Você ganhou: **{ganho}** moedas!"
+            f"Multiplicador: x{multiplicador:.2f}\n"
+            f"Ganho atual: {ganho_atual:,} moedas\n\n"
+            "Digite `?pick (1-18)` para continuar ou `?cashout` para sacar."
         ),
         color=discord.Color.green()
     )
 
-    del mines_jogos[uid]  # limpa o jogo do usuário
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+async def cashout(ctx):
+    uid = str(ctx.author.id)
+
+    if uid not in mines_jogos:
+        await ctx.send("❌ Você não tem um jogo de Mines ativo!")
+        return
+
+    jogo = mines_jogos[uid]
+    multiplicador = jogo["multiplicador"]
+    ganho = int(jogo["aposta"] * multiplicador)
+    set_saldo(uid, get_saldo(uid) + ganho)
+
+    embed = discord.Embed(
+        title="💰 Cashout realizado!",
+        description=(
+            f"Você sacou {ganho:,} moedas\n\n"
+            f"Casas escolhidas: {jogo['escolhidas']}\n"
+            f"Multiplicador final: x{multiplicador:.2f}"
+        ),
+        color=discord.Color.gold()
+    )
+
+    del mines_jogos[uid]
+
     await ctx.send(embed=embed)
 
 blackjack_jogos = {}
