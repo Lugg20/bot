@@ -500,18 +500,21 @@ async def mines(ctx, bombas: int, aposta: int):
     uid = str(ctx.author.id)
     saldo = get_saldo(uid)
 
-    if bombas < 3 or bombas > 17:
-        await ctx.send("❌ Bombas devem ser entre 3 e 17.")
-        return
-
+    # valida aposta
     if aposta <= 0 or aposta > saldo:
-        await ctx.send("❌ Aposta inválida ou saldo insuficiente.")
+        await ctx.send("❌ Aposta inválida ou saldo insuficiente, manin.")
         return
 
-    casas = list(range(1, 19))
-    bombas_pos = random.sample(casas, bombas)
-    seguras = [c for c in casas if c not in bombas_pos]
+    # valida bombas
+    if bombas < 1 or bombas > 17:  # tem que sobrar pelo menos 1 casa segura
+        await ctx.send("❌ Número de bombas inválido! Coloque entre 1 e 17, maninho.")
+        return
 
+    # cria casas
+    bombas_pos = random.sample(range(1, 19), bombas)
+    seguras = [i for i in range(1, 19) if i not in bombas_pos]
+
+    # adiciona ao dicionário do jogo
     mines_jogos[uid] = {
         "bombas": bombas_pos,
         "seguras": seguras,
@@ -520,10 +523,11 @@ async def mines(ctx, bombas: int, aposta: int):
         "multiplicador": 1.0
     }
 
-    # Aplica buff de chance se o usuário tiver
+    # aplica buff de chance se o usuário tiver
     chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)
     mines_jogos[uid]["multiplicador"] *= 1 + (chance_extra / 100)
 
+    # embed pro jogador ver
     embed = discord.Embed(
         title="💣 Mines iniciado!",
         description=(
@@ -534,6 +538,8 @@ async def mines(ctx, bombas: int, aposta: int):
         ),
         color=discord.Color.orange()
     )
+
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def pick(ctx, casa: int):
