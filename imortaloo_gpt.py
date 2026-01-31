@@ -517,13 +517,13 @@ async def mines(ctx, bombas: int, aposta: int):
         "multiplicador": 1.0
     }
 
-    # aplica buffs
+    # aplica buffs do usuário, se tiver
     chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)
     payout_extra = aposta_buffs.get(uid, {}).get("payout_extra", 0)
-    
-    # multiplica a chance e o ganho
+
     mines_jogos[uid]["multiplicador"] *= 1 + (payout_extra / 100)
 
+    # embed inicial
     embed = discord.Embed(
         title="💣 Mines iniciado!",
         description=(
@@ -537,85 +537,58 @@ async def mines(ctx, bombas: int, aposta: int):
 
     await ctx.send(embed=embed)
 
+# ===== pick =====
 @bot.command()
 async def pick(ctx, casa: int):
     uid = str(ctx.author.id)
-
     if uid not in mines_jogos:
-        await ctx.send("❌ Você não está em um jogo de mines.")
+        await ctx.send("❌ Você não iniciou um Mines, manin. Use `?mines`.")
         return
 
     jogo = mines_jogos[uid]
-
-    if casa < 1 or casa > 18:
-        await ctx.send("❌ Escolha uma casa entre 1 e 18.")
-        return
-
     if casa in jogo["escolhidas"]:
-        await ctx.send("❌ Você já escolheu essa casa.")
+        await ctx.send("⚠️ Você já escolheu essa casa!")
         return
 
     jogo["escolhidas"].append(casa)
 
     if casa in jogo["bombas"]:
+        # perdeu
         set_saldo(uid, get_saldo(uid) - jogo["aposta"])
         del mines_jogos[uid]
-
-        embed = discord.Embed(
-            title="💥 BOOM!",
-            description=f"Você caiu na bomba na casa **{casa}**!\nPerdeu **{jogo['aposta']}** moedas 😭",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
+        await ctx.send(f"💥 BOOM! Você caiu numa bomba e perdeu **{jogo['aposta']}** moedas.")
         return
+    else:
+        # ganha multiplicador por escolha
+        jogo["multiplicador"] *= 1 + (0.2 + aposta_buffs.get(uid, {}).get("chance_extra",0)/100)
+        await ctx.send(f"✅ Casa segura! Multiplicador atual: x{jogo['multiplicador']:.2f}")
 
-    # Casa segura
-    jogo["multiplicador"] += 0.5 + (len(jogo["bombas"]) * 0.1)
-    ganho_atual = int(jogo["aposta"] * jogo["multiplicador"])
-
-    embed = discord.Embed(
-        title="💎 Casa segura!",
-        description=(
-            f"Casa **{casa}** estava segura!\n\n"
-            f"Casas escolhidas: {jogo['escolhidas']}\n"
-            f"Multiplicador: **x{jogo['multiplicador']:.2f}**\n"
-            f"Ganho atual: **{ganho_atual}** moedas\n\n"
-            "Digite `?pick` para continuar ou `?cashout` para sacar."
-        ),
-        color=discord.Color.green()
-    )
-
-    await ctx.send(embed=embed)
-
+# ===== cashout =====
 @bot.command()
 async def cashout(ctx):
     uid = str(ctx.author.id)
-
     if uid not in mines_jogos:
-        await ctx.send("❌ Você não está em um jogo de mines.")
+        await ctx.send("❌ Você não está jogando Mines, manin.")
         return
 
     jogo = mines_jogos[uid]
-
-    if len(jogo["escolhidas"]) == 0:
-        await ctx.send("❌ Você precisa escolher pelo menos uma casa antes de sacar.")
-        return
-
     ganho = int(jogo["aposta"] * jogo["multiplicador"])
     set_saldo(uid, get_saldo(uid) + ganho)
-    del mines_jogos[uid]
 
+    # mostra casas escolhidas e multiplicador final
     embed = discord.Embed(
-        title="💰 Cashout realizado!",
+        title="💰 Cashout Mines!",
         description=(
-            f"Você sacou **{ganho:,} moedas** 🪙🔥\n"
             f"Casas escolhidas: {jogo['escolhidas']}\n"
-            f"Multiplicador final: **x{jogo['multiplicador']:.2f}**"
+            f"Multiplicador final: x{jogo['multiplicador']:.2f}\n"
+            f"Você ganhou: **{ganho}** moedas!"
         ),
         color=discord.Color.green()
     )
 
+    del mines_jogos[uid]  # limpa o jogo do usuário
     await ctx.send(embed=embed)
+
 blackjack_jogos = {}
 
 @bot.command()
@@ -627,7 +600,7 @@ async def blackjack(ctx, aposta: int):
         await ctx.send("❌ Aposta inválida ou saldo insuficiente, manin.")
         return
 
-    # baralho simples (2 a 11)
+    # Baralho simples (2-11, onde 11 = Ás)
     baralho = [2,3,4,5,6,7,8,9,10,10,10,10,11] * 4
     random.shuffle(baralho)
 
@@ -641,24 +614,28 @@ async def blackjack(ctx, aposta: int):
         "aposta": aposta
     }
 
-    # aplica payout extra da loja
-    payout_extra = aposta_buffs.get(uid, {}).get("payout_extra", 0)
-    multiplicador = 2.0  # base do blackjack
-    multiplicador *= 1 + (payout_extra / 100)
+    # Buffs do usuário
+    chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)  # aumenta chance de vitória
+    payout_extra = aposta_buffs.get(uid, {}).get("payout_extra", 0)  # aumenta payout
 
-    # chance base (pode deixar 50%)
-    chance_extra = aposta_buffs.get(uid, {}).get("chance_extra", 0)
-    chance_total = 50 + chance_extra
+    # Multiplicador base do blackjack
+    multiplicador = 2.0 * (1 + payout_extra / 100)
 
+    # Chance base de vitória
+    chance_base = 50
+    chance_total = chance_base + chance_extra
+
+    # Sorteia vitória
     resultado = random.randint(1, 100)
     if resultado <= chance_total:
         ganho = int(aposta * multiplicador)
-        set_saldo(uid, saldo + ganho)
-        await ctx.send(f"🎉 Você ganhou **{ganho}** moedas!")
+        set_saldo(uid, get_saldo(uid) + ganho)
+        await ctx.send(f"🎉 Você ganhou **{ganho}** moedas! (x{multiplicador:.2f})")
     else:
-        set_saldo(uid, saldo - aposta)
+        set_saldo(uid, get_saldo(uid) - aposta)
         await ctx.send(f"💥 Você perdeu **{aposta}** moedas!")
 
+    # Embed com mãos do jogador e dealer
     embed = discord.Embed(
         title="🃏 Blackjack iniciado!",
         description=(
@@ -917,39 +894,51 @@ async def mendigar(ctx, quantidade: int):
     await ctx.send(embed=embed, view=view)
 
 from discord.ui import View, Button
+import discord
 
-# Loja HUD
+# ===== LOJA =====
 LOJA_HUD = {
-    # Itens novos
+    # Itens antigos: aumentam payout
+    "payout_1": {
+        "nome": "💎 Payout 1",
+        "preco": 500_000,
+        "descricao": "Aumenta o valor ganho nos jogos (10%).",
+        "payout_extra": 10,
+        "chance_extra": 0
+    },
+    "payout_2": {
+        "nome": "💰 Payout 2",
+        "preco": 1_000_000,
+        "descricao": "Aumenta o valor ganho nos jogos (20%).",
+        "payout_extra": 20,
+        "chance_extra": 0
+    },
+    # Itens novos: aumentam chance de vitória
+    "sorte_1": {
+        "nome": "🎲 Sorte 1",
+        "preco": 500_000,
+        "descricao": "Aumenta sua chance de vitória nos jogos (+10%).",
+        "payout_extra": 0,
+        "chance_extra": 10
+    },
+    "sorte_2": {
+        "nome": "🎰 Sorte 2",
+        "preco": 750_000,
+        "descricao": "Aumenta ainda mais sua chance de vitória nos jogos (+20%).",
+        "payout_extra": 0,
+        "chance_extra": 20
+    },
+    # Reset global
     "reset": {
         "nome": "💣 Reset Global",
         "preco": 1_000_000_000_000,
-        "descricao": "Reseta o dinheiro de TODOS os usuários."
-    },
-    "aposta_1": {
-        "nome": "🎲 Sorte Aposta 1",
-        "preco": 500_000,
-        "descricao": "Aumenta o quanto você ganha nas apostas (+10% payout)."
-    },
-    "aposta_2": {
-        "nome": "🎰 Sorte Aposta 2",
-        "preco": 750_000,
-        "descricao": "Aumenta ainda mais o payout dos seus jogos de aposta (+20%)."
-    },
-    # Itens antigos que aumentam payout também
-    "item_antigo_1": {
-        "nome": "⭐ Boost Antigo 1",
-        "preco": 300_000,
-        "descricao": "Aumenta o payout dos jogos de aposta (+10%)."
-    },
-    "item_antigo_2": {
-        "nome": "⭐ Boost Antigo 2",
-        "preco": 600_000,
-        "descricao": "Aumenta o payout dos jogos de aposta (+20%)."
+        "descricao": "Reseta o dinheiro de TODOS os usuários.",
+        "payout_extra": 0,
+        "chance_extra": 0
     }
 }
 
-# View com botões
+# ===== VIEW DOS BOTÕES =====
 class LojaHUDView(View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -960,7 +949,7 @@ class LojaHUDView(View):
                 custom_id=key
             ))
 
-# Comando da loja
+# ===== COMANDO DA LOJA =====
 @bot.command()
 async def loja(ctx):
     embed = discord.Embed(title="🛒 Loja HUD", color=discord.Color.red())
@@ -971,6 +960,39 @@ async def loja(ctx):
             inline=False
         )
     await ctx.send(embed=embed, view=LojaHUDView())
+
+# ===== EVENTO DE INTERAÇÃO =====
+@bot.event
+async def on_interaction(interaction: discord.Interaction):
+    if interaction.type != discord.InteractionType.component:
+        return
+
+    uid = str(interaction.user.id)
+    key = interaction.data["custom_id"]
+    if key not in LOJA_HUD:
+        return
+
+    item = LOJA_HUD[key]
+    saldo = get_saldo(uid)
+
+    if saldo < item["preco"]:
+        await interaction.response.send_message("❌ Sem dinheiro suficiente!", ephemeral=True)
+        return
+
+    # Deduz o preço
+    set_saldo(uid, saldo - item["preco"])
+
+    # Aplica buff nos dicionários globais
+    if key.startswith("payout") or key.startswith("sorte"):
+        if uid not in aposta_buffs:
+            aposta_buffs[uid] = {"payout_extra":0, "chance_extra":0}
+        aposta_buffs[uid]["payout_extra"] += item.get("payout_extra",0)
+        aposta_buffs[uid]["chance_extra"] += item.get("chance_extra",0)
+        await interaction.response.send_message(f"✅ Você comprou **{item['nome']}**!", ephemeral=True)
+    elif key == "reset":
+        cursor.execute("UPDATE usuarios SET saldo = 0")
+        conn.commit()
+        await interaction.response.send_message("💣 **RESET GLOBAL ATIVADO!** Todo mundo ficou pobre. 💀", ephemeral=False)	
 
 # ================= START =================
 TOKEN = os.getenv("DISCORD_TOKEN")
