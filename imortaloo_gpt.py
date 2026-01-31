@@ -234,7 +234,8 @@ async def on_message(message):
 		  "`?give @ user dinheiro (so pra adm)`\n"
 		  "`?doar (usuario) (quantidade)`\n"
 		  "`?mendigar (quantidade)`\n"
-		  "`?loja`",
+		  "`?loja`\n"
+		  "`?inventario`",
             inline=False
         )
 
@@ -560,7 +561,7 @@ async def pick(ctx, casa: int):
 
     # Verifica se acertou bomba
     if casa in jogo["bombas"]:
-    set_saldo(uid, get_saldo(uid) - jogo["aposta"])
+        set_saldo(uid, get_saldo(uid) - jogo["aposta"])
 
     embed = discord.Embed(
         title="💥 BOOM!",
