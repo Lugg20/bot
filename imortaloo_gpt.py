@@ -560,10 +560,22 @@ async def pick(ctx, casa: int):
 
     # Verifica se acertou bomba
     if casa in jogo["bombas"]:
-        set_saldo(uid, get_saldo(uid) - jogo["aposta"])
-        await ctx.send(f"💥 BOOM! Casa {casa} era uma bomba! Você perdeu **{jogo['aposta']}** moedas!")
-        del mines_jogos[uid]
-        return
+    set_saldo(uid, get_saldo(uid) - jogo["aposta"])
+
+    embed = discord.Embed(
+        title="💥 BOOM!",
+        description=(
+            f"Casa {casa} era uma bomba!\n"
+            f"Você perdeu **{jogo['aposta']:,}** moedas.\n\n"
+            f"Casas escolhidas: {jogo['escolhidas']}\n"
+            "Fim de jogo!"
+        ),
+        color=discord.Color.red()
+    )
+
+    del mines_jogos[uid]
+    await ctx.send(embed=embed)
+    return
 
     # Calcula novo multiplicador
     casas_selecionadas = len(jogo["escolhidas"])
@@ -1021,6 +1033,27 @@ async def on_interaction(interaction: discord.Interaction):
         cursor.execute("UPDATE usuarios SET saldo = 0")
         conn.commit()
         await interaction.response.send_message("💣 **RESET GLOBAL ATIVADO!** Todo mundo ficou pobre. 💀", ephemeral=False)	
+
+@bot.command()
+async def inventario(ctx):
+    uid = str(ctx.author.id)
+    itens_usuario = aposta_buffs.get(uid, {}).get("itens", [])
+
+    if not itens_usuario:
+        await ctx.send("📦 Seu inventário está vazio, manin!")
+        return
+
+    embed = discord.Embed(title="🎒 Seu Inventário", color=discord.Color.blue())
+    for item in itens_usuario:
+        # Pega os dados do item na loja
+        info = LOJA_HUD.get(item)
+        if info:
+            embed.add_field(
+                name=info["nome"],
+                value=f"{info['descricao']}\nPreço: {info['preco']:,} moedas",
+                inline=False
+            )
+    await ctx.send(embed=embed)
 
 # ================= START =================
 TOKEN = os.getenv("DISCORD_TOKEN")
