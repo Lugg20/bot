@@ -1056,59 +1056,6 @@ async def inventario(ctx):
             )
     await ctx.send(embed=embed)
 
-import discord
-from discord.ext import commands
-
-CANAIS_PROTEGIDOS = ["regras", "anuncios", "announcements", "rules"]
-
-class LimpezaView(discord.ui.View):
-    def __init__(self, ctx):
-        super().__init__(timeout=40)
-        self.ctx = ctx
-
-    @discord.ui.button(label="⚠️ Apagar tudo (exceto protegidos)", style=discord.ButtonStyle.danger)
-    async def apagar_tudo(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user != self.ctx.author:
-            await interaction.response.send_message("Só quem usou o comando pode clicar 😡", ephemeral=True)
-            return
-
-        apagados = 0
-
-        for channel in self.ctx.guild.channels:
-            if channel.name.lower() not in CANAIS_PROTEGIDOS:
-                try:
-                    await channel.delete()
-                    apagados += 1
-                except:
-                    pass
-
-        for i in range(5):  # quantidade de canais "teste"
-            await self.ctx.guild.create_text_channel("teste")
-
-        await interaction.response.edit_message(
-            content=f"🗑️ {apagados} canais apagados.\n✅ Canais `teste` criados!",
-            view=None
-        )
-
-    @discord.ui.button(label="Cancelar", style=discord.ButtonStyle.secondary)
-    async def cancelar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user != self.ctx.author:
-            await interaction.response.send_message("Nem foi você, maninho 😏", ephemeral=True)
-            return
-
-        await interaction.response.edit_message(content="❌ Operação cancelada.", view=None)
-
-
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def teste(ctx):
-    await ctx.send(
-        "⚠️ Isso vai apagar QUASE todos os canais do servidor.\n"
-        "Canais protegidos: regras, anuncios, announcements, rules.\n\n"
-        "Deseja continuar?",
-        view=LimpezaView(ctx)
-    )
-
 # ================= START =================
 TOKEN = os.getenv("DISCORD_TOKEN")
 bot.run(TOKEN)
