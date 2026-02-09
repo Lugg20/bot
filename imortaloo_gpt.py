@@ -332,7 +332,7 @@ async def molestar(ctx):
         await ctx.send(f"escolhe algm seu molestadinho")
 
 @bot.command()
-@commands.has_permissions(manage_messages=True)
+@commands.has_permissions(manage_channels=True)
 async def definir(ctx, canal1: discord.TextChannel = None, canal2: discord.TextChannel = None):
     global CANAL_PERMITIDO
 
